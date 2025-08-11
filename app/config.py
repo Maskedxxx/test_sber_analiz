@@ -7,7 +7,7 @@ class Settings(BaseSettings):
 
     # Ollama
     OLLAMA_HOST: str = Field(default="http://localhost:11434", description="URL Ollama API")
-    OLLAMA_MODEL: str = Field(default="qwen2.5:7b-instruct", description="Имя модели в Ollama")
+    OLLAMA_MODEL: str = Field(default="llama3.1:latest", description="Имя модели в Ollama")
 
     # Embeddings
     EMBEDDING_MODEL: str = Field(default="BAAI/bge-m3", description="HF модель эмбеддингов")

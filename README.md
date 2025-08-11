@@ -5,7 +5,7 @@
 - Запросы о текущем времени в Москве
 - RAG по корпусу документов (из CSV; 1 строка = 1 документ, без чанкования)
 
-Модель LLM: **Ollama** (`qwen2.5:7b-instruct` по умолчанию). Эмбеддинги: **BAAI/bge-m3**.
+Модель LLM: **Ollama** (`llama3.1:latest` по умолчанию). Эмбеддинги: **BAAI/bge-m3**.
 
 ## Требования
 - Ubuntu 24.04, Docker 28+, Docker Compose v2.33+
@@ -22,7 +22,7 @@ cp .env.example .env
 ## Запуск через Docker Compose
 ```bash
 docker compose up -d ollama
-make pull  # загрузит модель qwen2.5:7b-instruct
+make pull  # загрузит модель llama3.1:latest
 
 # индексация
 docker compose run --rm app python -m app.rag.ingest
