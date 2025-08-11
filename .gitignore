@@ -1,4 +1,17 @@
-/venv
-/chroma_db
-__pycache__
+# virtualenv
+.venv/
+
+# python
+__pycache__/
+*.pyc
+
+# local data
+chroma_db/
+logs/
+
+# editor
+.vscode/
+.idea/
+
+# OS
 .DS_Store

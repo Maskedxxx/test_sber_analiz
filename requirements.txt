@@ -6,3 +6,5 @@ pydantic
 pandas
 chromadb
 openai
+sentence_transformers
+pydantic_settings

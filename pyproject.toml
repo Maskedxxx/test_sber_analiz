@@ -1,0 +1,31 @@
+[project]
+name = "rag-console-bot"
+version = "0.1.0"
+description = "Консольный чат-бот с RAG и инструментами (CPU/Memory, время МСК)"
+authors = [{name = "Ваше Имя"}]
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+  "typer>=0.12",
+  "pydantic>=2",
+  "pydantic-settings>=2",
+  "chromadb>=0.5",
+  "sentence-transformers>=3.0",
+  "numpy",
+  "psutil",
+  "structlog",
+  "python-dotenv",
+  "ollama>=0.2.1",
+  "pytest",
+  "torch>=2.2",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100
