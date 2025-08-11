@@ -2,7 +2,7 @@ import psutil
 import pytz
 from datetime import datetime
 from typing import Dict, Any
-from ..utils.logger import logger
+from utils.logger import logger
 
 
 class SystemService:

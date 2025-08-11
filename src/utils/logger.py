@@ -39,7 +39,8 @@ class ChatBotLogger:
     
     def user_query(self, query: str):
         """Логирует запрос пользователя."""
-        self.info(f"👤 Пользователь: {query}")
+        clean_query = query.encode('utf-8', errors='ignore').decode('utf-8')
+        self.info(f"👤 Пользователь: {clean_query}")
     
     def llm_function_call(self, function_name: str, args: dict):
         """Логирует вызов функции LLM."""
@@ -47,7 +48,9 @@ class ChatBotLogger:
     
     def system_response(self, response: str):
         """Логирует ответ системы."""
-        self.info(f"🤖 Ответ системы: {response[:100]}...")
+        # Безопасная обрезка строки с учетом UTF-8 
+        safe_response = response.encode('utf-8')[:100].decode('utf-8', errors='ignore')
+        self.info(f"🤖 Ответ системы: {safe_response}...")
     
     def error_occurred(self, error: Exception, context: str = ""):
         """Логирует ошибку с контекстом."""

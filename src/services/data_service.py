@@ -2,9 +2,9 @@ import pandas as pd
 import chromadb
 from chromadb.utils import embedding_functions
 from typing import List, Dict, Any
-from ..models.article import FinNewsArticle
-from ..utils.config import config
-from ..utils.logger import logger
+from models.article import FinNewsArticle
+from utils.config import config
+from utils.logger import logger
 
 
 class DataService:
@@ -154,7 +154,7 @@ class DataService:
                     "source": results['metadatas'][0][i]['source'],
                     "date": results['metadatas'][0][i]['date'],
                     "sphere": results['metadatas'][0][i]['sphere'],
-                    "document": results['documents'][0][i][:300] + "..."
+                    "document": results['documents'][0][i].encode('utf-8')[:300].decode('utf-8', errors='ignore') + "..."
                 }
                 formatted_results.append(result)
 

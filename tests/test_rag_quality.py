@@ -28,7 +28,7 @@ from utils.logger import logger
 class TestCase:
     """Тестовый случай для проверки качества RAG."""
     query: str
-    expected_article_ids: List[int]  # ID статей, которые должны быть в top_k
+    expected_article_ids: List[str]  # ID статей (как строки), которые должны быть в top_k
     expected_spheres: List[str]      # Ожидаемые сферы
     description: str
 
@@ -37,7 +37,7 @@ class TestCase:
 class TestResult:
     """Результат выполнения теста."""
     test_case: TestCase
-    found_article_ids: List[int]
+    found_article_ids: List[str]
     precision_at_5: float
     recall_at_5: float
     response_time: float
@@ -69,37 +69,37 @@ class RAGQualityTester:
             return False
     
     def _load_test_cases(self) -> List[TestCase]:
-        """Загружает размеченные тестовые случаи."""
+        """Загружает размеченные тестовые случаи на основе реальных данных."""
         return [
             TestCase(
-                query="новости о Сбербанке",
-                expected_article_ids=[1, 15, 23, 45],  # Пример ID, будут обновлены после анализа данных
-                expected_spheres=["Финансы", "Банки"],
-                description="Поиск новостей о конкретном банке"
+                query="новости о банках ВТБ Промсвязьбанк Сбербанк",
+                expected_article_ids=["5", "16"],  # ID 5 - статья про ВТБ Bank Europe и Промсвязьбанк, ID 16 - статья с упоминанием Сбербанка
+                expected_spheres=["Финансы"],
+                description="Поиск новостей о банковском секторе"
             ),
             TestCase(
-                query="информация о нефтяной отрасли",
-                expected_article_ids=[3, 12, 34],
-                expected_spheres=["Энергетика", "Нефть"],
-                description="Поиск по отраслевой тематике"
+                query="нефть газ энергетика Газпром цены на энергоносители",
+                expected_article_ids=["1", "4", "10", "11", "17"],  # Газпром (ID 1), курс рубля и нефть (ID 4), инфляция и энергия в Японии (ID 10), нефть (ID 11), запасы нефти (ID 17) 
+                expected_spheres=["Энергетика"],
+                description="Поиск по энергетическому сектору"
             ),
             TestCase(
-                query="курс валют и рубль",
-                expected_article_ids=[5, 18, 27],
-                expected_spheres=["Финансы", "Валюта"],
+                query="валютный курс рубль доллар юань",
+                expected_article_ids=["4"],  # ID 4 - статья про курс рубля к юаню и цены на нефть
+                expected_spheres=["Энергетика"],
                 description="Поиск по валютной тематике"
             ),
             TestCase(
-                query="фондовый рынок акции",
-                expected_article_ids=[7, 19, 29, 41],
-                expected_spheres=["Финансы", "Фондовый рынок"],
-                description="Поиск по фондовому рынку"
+                query="Мечел убыток EBITDA долги финансовые показатели",
+                expected_article_ids=["34", "35"],  # ID 34 - убытки Мечела, ID 35 - реструктуризация долга Мечела
+                expected_spheres=["Финансы"],
+                description="Поиск по финансовым показателям компаний"
             ),
             TestCase(
-                query="технологические компании IT",
-                expected_article_ids=[9, 22, 35],
-                expected_spheres=["Технологии", "IT"],
-                description="Поиск по IT сектору"
+                query="программа долгосрочных сбережений инвестиции ЦБ облигации",
+                expected_article_ids=["15", "16", "29"],  # ID 15, 16 - программа долгосрочных сбережений, ID 29 - расширение доступа к облигациям
+                expected_spheres=["Энергетика", "Финансы/Энергетика"],
+                description="Поиск по инвестиционным инструментам"
             ),
         ]
     
@@ -121,6 +121,14 @@ class RAGQualityTester:
             print(f"   {status} | Precision@5: {result.precision_at_5:.3f} | "
                   f"Recall@5: {result.recall_at_5:.3f} | "
                   f"Время: {result.response_time:.2f}с")
+            
+            # Подробная информация для анализа
+            if not result.passed:
+                print(f"   📊 Найденные ID: {result.found_article_ids}")
+                print(f"   🎯 Ожидаемые ID: {result.test_case.expected_article_ids}")
+            elif result.precision_at_5 > 0:
+                print(f"   📊 Найденные ID: {result.found_article_ids}")
+                print(f"   🎯 Ожидаемые ID: {result.test_case.expected_article_ids}")
         
         self._print_summary(results)
         return results
@@ -134,8 +142,8 @@ class RAGQualityTester:
             search_results = self.data_service.search_articles(test_case.query, top_k=5)
             response_time = time.time() - start_time
             
-            # Извлекаем ID найденных статей
-            found_article_ids = [result["id"] for result in search_results["results"]]
+            # Извлекаем ID найденных статей (преобразуем в строки для совместимости)
+            found_article_ids = [str(result["id"]) for result in search_results["results"]]
             
             # Вычисляем метрики
             precision_at_5 = self._calculate_precision_at_k(
@@ -175,7 +183,7 @@ class RAGQualityTester:
             )
     
     @staticmethod
-    def _calculate_precision_at_k(found_ids: List[int], expected_ids: List[int], k: int) -> float:
+    def _calculate_precision_at_k(found_ids: List[str], expected_ids: List[str], k: int) -> float:
         """Вычисляет Precision@K."""
         if not found_ids:
             return 0.0
@@ -187,7 +195,7 @@ class RAGQualityTester:
         return relevant_found / min(len(found_ids), k)
     
     @staticmethod
-    def _calculate_recall_at_k(found_ids: List[int], expected_ids: List[int], k: int) -> float:
+    def _calculate_recall_at_k(found_ids: List[str], expected_ids: List[str], k: int) -> float:
         """Вычисляет Recall@K."""
         if not expected_ids:
             return 1.0
@@ -281,10 +289,34 @@ def main():
             'found_article_ids': result.found_article_ids
         })
     
-    with open('test_results.json', 'w', encoding='utf-8') as f:
+    with open('test_results/test_results.json', 'w', encoding='utf-8') as f:
         json.dump(results_data, f, ensure_ascii=False, indent=2)
     
-    print("\n💾 Результаты сохранены в test_results.json")
+    print("\n💾 Результаты сохранены в test_results/test_results.json")
+    
+    # Также создаем детальный отчет
+    detailed_report = {
+        'summary': {
+            'total_tests': len(results),
+            'passed_tests': sum(1 for r in results if r.passed),
+            'avg_precision': sum(r.precision_at_5 for r in results) / len(results),
+            'avg_recall': sum(r.recall_at_5 for r in results) / len(results),
+            'avg_response_time': sum(r.response_time for r in results) / len(results),
+            'avg_similarity': sum(r.avg_similarity for r in results) / len(results)
+        },
+        'detailed_results': results_data,
+        'recommendations': []
+    }
+    
+    # Добавляем рекомендации
+    failed_tests = [r for r in results if not r.passed]
+    if failed_tests:
+        detailed_report['recommendations'].append(f"Требуется улучшить качество поиска для {len(failed_tests)} тестов")
+        for failed in failed_tests:
+            detailed_report['recommendations'].append(f"Тест '{failed.test_case.description}': найдены ID {failed.found_article_ids}, ожидались {failed.test_case.expected_article_ids}")
+    
+    with open('test_results/detailed_report.json', 'w', encoding='utf-8') as f:
+        json.dump(detailed_report, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":

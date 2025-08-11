@@ -1,10 +1,10 @@
 import json
 from openai import OpenAI
 from typing import Dict, Any, List
-from .data_service import DataService
-from .system_service import SystemService
-from ..utils.config import config
-from ..utils.logger import logger
+from services.data_service import DataService
+from services.system_service import SystemService
+from utils.config import config
+from utils.logger import logger
 
 
 class LLMService:
@@ -18,29 +18,28 @@ class LLMService:
         # Определяем доступные инструменты
         self.tools = [
             {
-                "type": "function",
-                "function": {
-                    "name": "search_financial_news",
-                    "description": "Поиск по базе российских финансовых новостей. Используйте для вопросов о финансах, экономике, компаниях, рынках.",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "Поисковый запрос для поиска релевантных финансовых новостей"
-                            },
-                            "top_k": {
-                                "type": "integer",
-                                "description": "Количество результатов (по умолчанию 5)",
-                                "default": 5
-                            }
+            "type": "function",
+            "function": {
+                "name": "search_financial_news",
+                "description": "Поиск по базе российских финансовых новостей. Используйте для вопросов о финансах, экономике, компаниях, рынках.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "Поисковый запрос для поиска релевантных финансовых новостей"
                         },
-                        "required": ["query"],
-                        "additionalProperties": False
+                        "top_k": {
+                            "type": "integer",
+                            "description": "Количество результатов (по умолчанию 5)"
+                        }
                     },
-                    "strict": True
-                }
-            },
+                    "required": ["query", "top_k"],  # <-- ДОБАВИТЬ top_k
+                    "additionalProperties": False
+                },
+                "strict": True
+            }
+        },
             {
                 "type": "function",
                 "function": {

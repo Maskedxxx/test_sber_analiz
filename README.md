@@ -65,11 +65,17 @@ OPENAI_API_KEY=your_openai_api_key_here
 ### 3. Запуск через Docker Compose
 
 ```bash
-# Сборка и запуск контейнера
-docker-compose up --build
+# Интерактивный запуск (рекомендуемый)
+docker compose run --rm chatbot
 
-# Для запуска в фоновом режиме
-docker-compose up -d --build
+# Постоянный запуск сервиса (для тестов/разработки)
+docker compose up --build
+
+# Примечание: При docker compose up интерактивность не работает.
+# Для взаимодействия используйте docker exec:
+docker exec -it financial_chatbot bash
+# или запустите бот внутри:
+# python src/chatbot.py
 ```
 
 ### 4. Использование
@@ -92,10 +98,15 @@ docker-compose up -d --build
 ### Запуск тестов качества
 
 ```bash
-# Внутри контейнера
+# Способ 1: Через временный контейнер (рекомендуемый)
+docker compose run --rm chatbot python tests/test_rag_quality.py
+
+# Способ 2: Если контейнер запущен постоянно
+# Сначала: docker compose up --build
+# Затем:
 docker exec -it financial_chatbot python tests/test_rag_quality.py
 
-# Или локально (после установки зависимостей)
+# Способ 3: Локально (после установки зависимостей)
 cd tests
 python test_rag_quality.py
 ```
