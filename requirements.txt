@@ -1,8 +1,11 @@
-requests>=2.31.0
-pathlib
-beautifulsoup4
-markdownify
-pydantic
+# Core dependencies
 pandas
-chromadb
+pydantic
 openai
+chromadb
+psutil
+pytz
+
+# Additional dependencies for ChromaDB
+numpy
+requests

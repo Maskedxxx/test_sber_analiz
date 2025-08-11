@@ -1,0 +1,23 @@
+services:
+  chatbot:
+    build: .
+    container_name: financial_chatbot
+    stdin_open: true
+    tty: true
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATA_PATH=data/mini_df.csv
+      - CHROMA_DB_PATH=./chroma_db
+      - COLLECTION_NAME=financial_news
+      - EMBEDDING_MODEL=text-embedding-3-small
+      - LLM_MODEL=gpt-4.1-mini-2025-04-14
+    volumes:
+      # Сохраняем ChromaDB данные между запусками
+      - chroma_data:/app/chroma_db
+      # Монтируем данные (можно заменить на bind mount для обновления данных)
+      - ./data:/app/data:ro
+    restart: unless-stopped
+
+volumes:
+  chroma_data:
+    driver: local
