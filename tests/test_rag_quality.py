@@ -41,7 +41,8 @@ class TestResult:
     precision_at_5: float
     recall_at_5: float
     response_time: float
-    avg_similarity: float
+    avg_similarity: float  # Косинусная схожесть в диапазоне [-1, 1]
+    avg_distance: float    # Косинусное расстояние в диапазоне [0, 2]
     passed: bool
 
 
@@ -101,6 +102,54 @@ class RAGQualityTester:
                 expected_spheres=["Энергетика", "Финансы/Энергетика"],
                 description="Поиск по инвестиционным инструментам"
             ),
+            TestCase(
+                query="финансовые отчеты и дивиденды Яндекса",
+                expected_article_ids=["57", "58", "93", "95"],
+                expected_spheres=["Финансы", "Финансы/Энергетика"],
+                description="Поиск новостей о финансовых показателях, дивидендной и кадровой политике Яндекса."
+            ),
+            TestCase(
+                query="санкции против России нефть алюминий",
+                expected_article_ids=["53", "56", "80", "131", "142"],
+                expected_spheres=["Энергетика", "Финансы"],
+                description="Поиск информации о санкционном давлении на экономику РФ, в частности на энергетический и металлургический секторы."
+            ),
+            TestCase(
+                query="банковское мошенничество и кибербезопасность",
+                expected_article_ids=["40", "42", "49", "79", "92", "156", "158"],
+                expected_spheres=["Финансы"],
+                description="Поиск новостей о мерах ЦБ и банков по борьбе с финансовым мошенничеством, дропперами и киберугрозами."
+            ),
+            TestCase(
+                query="автомобильная промышленность в России и мире",
+                expected_article_ids=["0", "13", "33", "50", "83", "87", "122"],
+                expected_spheres=["Финансы"],
+                description="Поиск новостей о состоянии автопрома, включая финансовые результаты и производственные планы отечественных и зарубежных компаний."
+            ),
+            TestCase(
+                query="динамика цен на нефть Brent WTI и запасы",
+                expected_article_ids=["4", "11", "17", "20", "24", "53", "97", "116", "135", "139"],
+                expected_spheres=["Энергетика"],
+                description="Поиск новостей о динамике мировых цен на нефть и факторах, влияющих на предложение, таких как уровень запасов и решения ОПЕК+."
+            ),
+            TestCase(
+                query="Газпром и газификация России",
+                expected_article_ids=["1", "48", "70", "148"],
+                expected_spheres=["Финансы", "Энергетика"],
+                description="Поиск новостей, связанных с Газпромом, программой газификации и состоянием внутреннего рынка газа в России."
+            ),
+            TestCase(
+                query="цифровой рубль и новые платежные технологии",
+                expected_article_ids=["65", "76"],
+                expected_spheres=["Финансы"],
+                description="Поиск информации о внедрении новых платежных технологий в России, таких как цифровой рубль и универсальные QR-коды."
+            ),
+            TestCase(
+                query="разморозка активов российских инвесторов",
+                expected_article_ids=["71", "72"],
+                expected_spheres=["Финансы"],
+                description="Поиск информации о мерах Банка России по разморозке заблокированных активов российских инвесторов."
+            )
         ]
     
     def run_all_tests(self) -> List[TestResult]:
@@ -153,9 +202,11 @@ class RAGQualityTester:
                 found_article_ids, test_case.expected_article_ids, k=5
             )
             
-            # Средняя схожесть
-            similarities = [result["similarity"] for result in search_results["results"]]
-            avg_similarity = sum(similarities) / len(similarities) if similarities else 0
+            # Средняя косинусная схожесть и расстояние
+            similarities = [result.get("similarity") for result in search_results.get("results", []) if "similarity" in result]
+            distances = [result.get("distance") for result in search_results.get("results", []) if "distance" in result]
+            avg_similarity = (sum(similarities) / len(similarities)) if similarities else 0.0
+            avg_distance = (sum(distances) / len(distances)) if distances else 0.0
             
             # Определяем, прошел ли тест (пороги можно настроить)
             passed = precision_at_5 >= 0.2 and recall_at_5 >= 0.1 and response_time <= 10.0
@@ -167,6 +218,7 @@ class RAGQualityTester:
                 recall_at_5=recall_at_5,
                 response_time=response_time,
                 avg_similarity=avg_similarity,
+                avg_distance=avg_distance,
                 passed=passed
             )
             
@@ -219,12 +271,14 @@ class RAGQualityTester:
         avg_recall = sum(r.recall_at_5 for r in results) / total_tests
         avg_time = sum(r.response_time for r in results) / total_tests
         avg_similarity = sum(r.avg_similarity for r in results) / total_tests
+        avg_distance_all = sum(r.avg_distance for r in results) / total_tests
         
         print(f"✅ Успешных тестов: {passed_tests}/{total_tests} ({passed_tests/total_tests*100:.1f}%)")
         print(f"📈 Средний Precision@5: {avg_precision:.3f}")
         print(f"📈 Средний Recall@5: {avg_recall:.3f}")
         print(f"⏱️  Среднее время ответа: {avg_time:.2f} секунд")
-        print(f"🎯 Средняя схожесть: {avg_similarity:.3f}")
+        print(f"🎯 Среднее косинусное сходство: {avg_similarity:.3f} ([-1..1], больше лучше)")
+        print(f"🧭 Среднее косинусное расстояние: {avg_distance_all:.3f} ([0..2], меньше лучше)")
         
         if passed_tests == total_tests:
             print("\n🎉 Все тесты прошли успешно!")
@@ -285,6 +339,7 @@ def main():
             'recall_at_5': result.recall_at_5,
             'response_time': result.response_time,
             'avg_similarity': result.avg_similarity,
+            'avg_distance': result.avg_distance,
             'passed': result.passed,
             'found_article_ids': result.found_article_ids
         })
@@ -302,7 +357,8 @@ def main():
             'avg_precision': sum(r.precision_at_5 for r in results) / len(results),
             'avg_recall': sum(r.recall_at_5 for r in results) / len(results),
             'avg_response_time': sum(r.response_time for r in results) / len(results),
-            'avg_similarity': sum(r.avg_similarity for r in results) / len(results)
+            'avg_similarity': sum(r.avg_similarity for r in results) / len(results),
+            'avg_distance': sum(r.avg_distance for r in results) / len(results)
         },
         'detailed_results': results_data,
         'recommendations': []
