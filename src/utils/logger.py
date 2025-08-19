@@ -9,7 +9,7 @@ class ChatBotLogger:
     
     def __init__(self, name: str = "chatbot"):
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         
         # Создаем форматтер
         formatter = logging.Formatter(
@@ -51,6 +51,12 @@ class ChatBotLogger:
         # Безопасная обрезка строки с учетом UTF-8 
         safe_response = response.encode('utf-8')[:100].decode('utf-8', errors='ignore')
         self.info(f"🤖 Ответ системы: {safe_response}...")
+    
+    def debug(self, message: str, **kwargs):
+        """Логирует отладочное сообщение."""
+        if kwargs:
+            message = f"{message} | {kwargs}"
+        self.logger.debug(message)
     
     def error_occurred(self, error: Exception, context: str = ""):
         """Логирует ошибку с контекстом."""
