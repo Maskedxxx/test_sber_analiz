@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from models.article import FinNewsArticle
 from utils.config import config
 from utils.logger import logger
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 
 class DataService:
@@ -44,44 +45,68 @@ class DataService:
     def setup_vector_store(self) -> chromadb.Collection:
         """
         Создает или загружает коллекцию ChromaDB с эмбедингами.
-        
+
         Returns:
             ChromaDB коллекция
         """
         try:
             logger.info("🔄 Настройка векторной базы данных...")
-            
-            # Создаем OpenAI embedding function
-            openai_ef = embedding_functions.OpenAIEmbeddingFunction(
-                api_key=config.openai_api_key,
-                model_name=config.embedding_model
+
+            # Используем лёгкую модель из Hugging Face (русский поддержан)
+            # По умолчанию: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+            logger.info(
+                "⬇️ Загрузка модели эмбеддингов из Hugging Face — это может занять 1–5 минут при первом запуске",
+                model=config.embedding_model,
             )
+            ef = SentenceTransformerEmbeddingFunction(model_name=config.embedding_model)
+            logger.info("✅ Модель эмбеддингов загружена")
 
             # Создаем клиент
             client = chromadb.PersistentClient(path=config.chroma_db_path)
 
-            try:
-                # Пытаемся загрузить существующую коллекцию
-                self.collection = client.get_collection(
-                    name=config.collection_name,
-                    embedding_function=openai_ef
-                )
-                logger.info(f"✅ Загружена коллекция с {self.collection.count()} документами")
-                
-            except Exception:
-                # Создаем новую коллекцию
-                logger.info("🔄 Создание новой коллекции...")
+            if config.rebuild_collection:
+                logger.info("♻️ Включен REBUILD_COLLECTION=true — пересоздаём коллекцию")
+                # Удаляем коллекцию, если существует
+                try:
+                    client.delete_collection(name=config.collection_name)
+                    logger.info("🗑️ Старая коллекция удалена")
+                except Exception:
+                    logger.info("ℹ️ Старой коллекции не было или уже удалена")
+
+                # Создаём новую коллекцию
                 self.collection = client.create_collection(
                     name=config.collection_name,
-                    embedding_function=openai_ef
+                    embedding_function=ef,
                 )
-                
-                # Загружаем статьи если они не загружены
+
                 if not self.articles:
                     self.load_articles()
-                
-                # Добавляем документы в коллекцию
                 self._add_articles_to_collection()
+                logger.info("✅ Коллекция переиндексирована")
+
+            else:
+                try:
+                    # Пытаемся загрузить существующую коллекцию
+                    self.collection = client.get_collection(
+                        name=config.collection_name,
+                        embedding_function=ef,
+                    )
+                    logger.info(f"✅ Загружена коллекция с {self.collection.count()} документами")
+
+                except Exception:
+                    # Создаем новую коллекцию
+                    logger.info("🔄 Создание новой коллекции...")
+                    self.collection = client.create_collection(
+                        name=config.collection_name,
+                        embedding_function=ef,
+                    )
+
+                    # Загружаем статьи если они не загружены
+                    if not self.articles:
+                        self.load_articles()
+
+                    # Добавляем документы в коллекцию
+                    self._add_articles_to_collection()
                 
             return self.collection
             
@@ -144,17 +169,34 @@ class DataService:
             )
 
             # Форматируем результаты
+            import math
+
             formatted_results = []
             for i in range(len(results['documents'][0])):
+                # Безопасно приводим значения и избегаем NaN/Inf в JSON
+                raw_distance = results['distances'][0][i]
+                distance = float(raw_distance) if raw_distance is not None else None
+                if isinstance(distance, float) and not math.isfinite(distance):
+                    distance = None
+
+                similarity = None
+                if isinstance(distance, float) and math.isfinite(distance):
+                    similarity = 1.0 - distance
+                    if not math.isfinite(similarity):
+                        similarity = None
+
+                doc_text = str(results['documents'][0][i])
+                snippet = doc_text[:300] + ("..." if len(doc_text) > 300 else "")
+
                 result = {
-                    "id": results['metadatas'][0][i]['id'],
-                    "distance": results['distances'][0][i],
-                    "similarity": 1 - results['distances'][0][i],  # Преобразуем в схожесть
-                    "answer": results['metadatas'][0][i]['answer'],
-                    "source": results['metadatas'][0][i]['source'],
-                    "date": results['metadatas'][0][i]['date'],
-                    "sphere": results['metadatas'][0][i]['sphere'],
-                    "document": results['documents'][0][i].encode('utf-8')[:300].decode('utf-8', errors='ignore') + "..."
+                    "id": str(results['metadatas'][0][i].get('id')),
+                    "distance": distance,
+                    "similarity": similarity,
+                    "answer": results['metadatas'][0][i].get('answer'),
+                    "source": results['metadatas'][0][i].get('source'),
+                    "date": results['metadatas'][0][i].get('date'),
+                    "sphere": results['metadatas'][0][i].get('sphere'),
+                    "document": snippet,
                 }
                 formatted_results.append(result)
 

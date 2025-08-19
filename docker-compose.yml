@@ -5,12 +5,22 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # GigaChat OAuth (рекомендуется)
+      - GIGACHAT_AUTH_KEY=${GIGACHAT_AUTH_KEY:-}
+      - GIGACHAT_CLIENT_ID=${GIGACHAT_CLIENT_ID}
+      - GIGACHAT_CLIENT_SECRET=${GIGACHAT_CLIENT_SECRET}
+      - GIGACHAT_SCOPE=${GIGACHAT_SCOPE}
+      - GIGACHAT_AUTH_URL=${GIGACHAT_AUTH_URL}
+      - GIGACHAT_BASE_URL=${GIGACHAT_BASE_URL}
+      - GIGACHAT_VERIFY_SSL=${GIGACHAT_VERIFY_SSL}
+      # OpenAI (опционально для обратной совместимости)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - DATA_PATH=data/mini_df.csv
       - CHROMA_DB_PATH=./chroma_db
       - COLLECTION_NAME=financial_news
-      - EMBEDDING_MODEL=text-embedding-3-small
-      - LLM_MODEL=gpt-4.1-mini-2025-04-14
+      - REBUILD_COLLECTION=${REBUILD_COLLECTION}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      - LLM_MODEL=${LLM_MODEL}
     volumes:
       # Сохраняем ChromaDB данные между запусками
       - chroma_data:/app/chroma_db
@@ -29,12 +39,22 @@ services:
     stdin_open: true
     tty: true
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # GigaChat OAuth (рекомендуется)
+      - GIGACHAT_AUTH_KEY=${GIGACHAT_AUTH_KEY:-}
+      - GIGACHAT_CLIENT_ID=${GIGACHAT_CLIENT_ID}
+      - GIGACHAT_CLIENT_SECRET=${GIGACHAT_CLIENT_SECRET}
+      - GIGACHAT_SCOPE=${GIGACHAT_SCOPE}
+      - GIGACHAT_AUTH_URL=${GIGACHAT_AUTH_URL}
+      - GIGACHAT_BASE_URL=${GIGACHAT_BASE_URL}
+      - GIGACHAT_VERIFY_SSL=${GIGACHAT_VERIFY_SSL}
+      # OpenAI (опционально для обратной совместимости)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - DATA_PATH=data/mini_df.csv
       - CHROMA_DB_PATH=./chroma_db
       - COLLECTION_NAME=financial_news
-      - EMBEDDING_MODEL=text-embedding-3-small
-      - LLM_MODEL=gpt-4.1-mini-2025-04-14
+      - REBUILD_COLLECTION=${REBUILD_COLLECTION}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      - LLM_MODEL=${LLM_MODEL}
     volumes:
       - chroma_data:/app/chroma_db
       - ./data:/app/data:ro
